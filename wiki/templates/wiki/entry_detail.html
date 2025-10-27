@@ -1,0 +1,198 @@
+{% extends 'wiki/base.html' %}
+
+{% block title %}{{ entry.title }} - 百科系统{% endblock %}
+
+{% block page_title %}{{ entry.title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 词条内容 -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body">
+                <!-- 词条头部信息 -->
+                <div class="d-flex justify-content-between align-items-start mb-4">
+                    <div>
+                        {% if entry.category %}
+                        <span class="badge bg-primary mb-2">{{ entry.category.name }}</span>
+                        {% endif %}
+                        <div class="text-muted">
+                            <small>
+                                <i class="fas fa-calendar"></i> 
+                                创建时间: {{ entry.created_at|date:"Y-m-d H:i" }}
+                            </small>
+                            {% if entry.updated_at != entry.created_at %}
+                            <small class="ms-3">
+                                <i class="fas fa-edit"></i> 
+                                更新时间: {{ entry.updated_at|date:"Y-m-d H:i" }}
+                            </small>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- 操作按钮 -->
+                    <div class="btn-group">
+                        <a href="{% url 'wiki:entry_edit' entry.id %}" 
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-edit"></i> 编辑
+                        </a>
+                        <a href="{% url 'wiki:entry_delete' entry.id %}" 
+                           class="btn btn-outline-danger btn-sm">
+                            <i class="fas fa-trash"></i> 删除
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- 词条内容 -->
+                <div class="entry-content">
+                    {{ entry.content|linebreaks }}
+                </div>
+                
+                <!-- 标签区域 -->
+                <div class="mt-4 pt-3 border-top">
+                    <h6><i class="fas fa-tags"></i> 相关信息</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-light text-dark">
+                            <i class="fas fa-eye"></i> 浏览量: 0
+                        </span>
+                        <span class="badge bg-light text-dark">
+                            <i class="fas fa-heart"></i> 点赞: 0
+                        </span>
+                        {% if entry.category %}
+                        <a href="{% url 'wiki:category_entries' entry.category.id %}" 
+                           class="badge bg-info text-decoration-none">
+                            <i class="fas fa-folder"></i> 
+                            查看此分类下所有词条
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 导航按钮 -->
+        <div class="d-flex justify-content-between mt-4">
+            <a href="{% url 'wiki:entry_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> 返回词条列表
+            </a>
+            <div>
+                <a href="{% url 'wiki:entry_edit' entry.id %}" class="btn btn-primary">
+                    <i class="fas fa-edit"></i> 编辑词条
+                </a>
+                <a href="{% url 'wiki:entry_create' %}" class="btn btn-success">
+                    <i class="fas fa-plus"></i> 创建新词条
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 侧边栏 -->
+    <div class="col-lg-4">
+        <!-- 相关词条 -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-link"></i> 相关词条
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if entry.category %}
+                    {% with related_entries=entry.category.entry_set.exclude.id=entry.id|slice:":5" %}
+                    {% if related_entries %}
+                        <div class="list-group list-group-flush">
+                            {% for related_entry in related_entries %}
+                            <a href="{% url 'wiki:entry_detail' related_entry.id %}" 
+                               class="list-group-item list-group-item-action">
+                                {{ related_entry.title }}
+                                <small class="text-muted d-block">
+                                    {{ related_entry.created_at|date:"m-d" }}
+                                </small>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">此分类下暂无其他词条</p>
+                    {% endif %}
+                    {% endwith %}
+                {% else %}
+                    <p class="text-muted mb-0">此词条未分类</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- 快速操作 -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-bolt"></i> 快速操作
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'wiki:entry_create' %}" class="btn btn-success">
+                        <i class="fas fa-plus"></i> 创建新词条
+                    </a>
+                    <a href="{% url 'wiki:entry_edit' entry.id %}" class="btn btn-primary">
+                        <i class="fas fa-edit"></i> 编辑此词条
+                    </a>
+                    <a href="{% url 'wiki:entry_list' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-list"></i> 查看所有词条
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 词条统计 -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-chart-bar"></i> 词条统计
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="text-primary">
+                            <i class="fas fa-calendar fa-2x"></i>
+                            <div class="mt-2">
+                                <strong>{{ entry.created_at|date:"m/d" }}</strong>
+                                <div class="small">创建日期</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-success">
+                            <i class="fas fa-edit fa-2x"></i>
+                            <div class="mt-2">
+                                <strong>{% if entry.updated_at != entry.created_at %}已更新{% else %}未更新{% endif %}</strong>
+                                <div class="small">更新状态</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-info">
+                            <i class="fas fa-book fa-2x"></i>
+                            <div class="mt-2">
+                                <strong>{{ entry.content|wordcount }}</strong>
+                                <div class="small">字数</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.entry-content {
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
+.entry-content p {
+    margin-bottom: 1rem;
+}
+</style>
+{% endblock %}

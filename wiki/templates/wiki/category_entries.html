@@ -1,0 +1,315 @@
+{% extends 'wiki/base.html' %}
+
+{% block title %}{{ category.name }} - 百科系统{% endblock %}
+
+{% block page_title %}
+<div class="d-flex justify-content-between align-items-center">
+    <div>
+        <span class="me-2">{{ category.name }}</span>
+        <span class="badge bg-primary">
+            <i class="fas fa-folder"></i> 分类
+        </span>
+    </div>
+    <a href="{% url 'wiki:entry_create' %}?category={{ category.id }}" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus"></i> 添加词条
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 侧边栏 - 分类信息 -->
+    <div class="col-lg-3 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-info-circle"></i> 分类信息
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <span class="badge bg-primary p-3 rounded-circle">
+                        <i class="fas fa-folder fa-2x"></i>
+                    </span>
+                </div>
+                
+                <div class="mb-3">
+                    <strong>分类名称:</strong>
+                    <p class="mb-0">{{ category.name }}</p>
+                </div>
+                
+                <div class="mb-3">
+                    <strong>创建时间:</strong>
+                    <p class="mb-0 text-muted">{{ category.created_at|date:"Y-m-d H:i" }}</p>
+                </div>
+                
+                <div class="mb-3">
+                    <strong>词条数量:</strong>
+                    <p class="mb-0">
+                        <span class="badge bg-secondary">{{ entries.count }} 个词条</span>
+                    </p>
+                </div>
+                
+                <div class="mb-3">
+                    <strong>最后更新:</strong>
+                    <p class="mb-0 text-muted">
+                        {% if entries.first %}
+                            {{ entries.first.updated_at|date:"Y-m-d H:i" }}
+                        {% else %}
+                            暂无更新
+                        {% endif %}
+                    </p>
+                </div>
+                
+                <hr>
+                
+                <div class="d-grid gap-2">
+                    <a href="{% url 'wiki:category_list' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left"></i> 返回分类列表
+                    </a>
+                    <a href="{% url 'wiki:entry_list' %}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-list"></i> 查看所有词条
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 快速操作 -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-bolt"></i> 快速操作
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'wiki:entry_create' %}?category={{ category.id }}" 
+                       class="btn btn-success btn-sm">
+                        <i class="fas fa-plus"></i> 新建词条
+                    </a>
+                    <button class="btn btn-outline-warning btn-sm" onclick="alert('编辑功能待实现')">
+                        <i class="fas fa-edit"></i> 编辑分类
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 主内容区 - 词条列表 -->
+    <div class="col-lg-9">
+        <!-- 统计信息 -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card bg-primary text-white">
+                    <div class="card-body py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-file-alt fa-2x"></i>
+                            </div>
+                            <div>
+                                <h4 class="mb-0">{{ entries.count }}</h4>
+                                <small>词条总数</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-success text-white">
+                    <div class="card-body py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-font fa-2x"></i>
+                            </div>
+                            <div>
+                                <h4 class="mb-0">{{ total_words }}</h4>
+                                <small>总字数</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-info text-white">
+                    <div class="card-body py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-clock fa-2x"></i>
+                            </div>
+                            <div>
+                                <h4 class="mb-0">{{ avg_words_per_entry|floatformat:0 }}</h4>
+                                <small>平均字数/词条</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 词条列表 -->
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list"></i> 词条列表
+                    </h5>
+                    <div class="btn-group">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="sortEntries('title')">
+                            <i class="fas fa-sort-alpha-down"></i> 按标题
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="sortEntries('date')">
+                            <i class="fas fa-sort-numeric-down"></i> 按时间
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                {% if entries %}
+                <div class="list-group list-group-flush">
+                    {% for entry in entries %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">
+                                    <a href="{% url 'wiki:entry_detail' entry.id %}" class="text-decoration-none">
+                                        {{ entry.title }}
+                                    </a>
+                                </h6>
+                                <p class="mb-1 text-muted small">
+                                    {{ entry.content|truncatewords:30 }}
+                                </p>
+                                <div class="d-flex align-items-center small text-muted">
+                                    <span class="me-3">
+                                        <i class="fas fa-calendar"></i> 
+                                        {{ entry.created_at|date:"Y-m-d" }}
+                                    </span>
+                                    <span class="me-3">
+                                        <i class="fas fa-clock"></i> 
+                                        {{ entry.updated_at|date:"H:i" }}
+                                    </span>
+                                    <span>
+                                        <i class="fas fa-font"></i> 
+                                        {{ entry.content|wordcount }} 字
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex-shrink-0 ms-3">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'wiki:entry_detail' entry.id %}" 
+                                       class="btn btn-outline-primary" title="查看">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'wiki:entry_edit' entry.id %}" 
+                                       class="btn btn-outline-warning" title="编辑">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">暂无词条</h5>
+                    <p class="text-muted">此分类下还没有任何词条</p>
+                    <a href="{% url 'wiki:entry_create' %}?category={{ category.id }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> 创建第一个词条
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- 分页控件 -->
+        {% if entries.has_other_pages %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if entries.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ entries.previous_page_number }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">&laquo;</span>
+                </li>
+                {% endif %}
+                
+                {% for i in entries.paginator.page_range %}
+                {% if entries.number == i %}
+                <li class="page-item active">
+                    <span class="page-link">{{ i }}</span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
+                
+                {% if entries.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ entries.next_page_number }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">&raquo;</span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function sortEntries(type) {
+    let currentUrl = new URL(window.location.href);
+    
+    if (type === 'title') {
+        currentUrl.searchParams.set('sort', 'title');
+    } else if (type === 'date') {
+        currentUrl.searchParams.set('sort', 'date');
+    }
+    
+    window.location.href = currentUrl.toString();
+}
+
+// 页面加载时高亮当前分类
+window.addEventListener('load', function() {
+    const categoryId = {{ category.id }};
+    const categoryLinks = document.querySelectorAll(`a[href*="category="]`);
+    
+    categoryLinks.forEach(link => {
+        if (link.href.includes(`category=${categoryId}`)) {
+            link.classList.add('active');
+        }
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.list-group-item:hover {
+    background-color: #f8f9fa;
+}
+.list-group-item h6 a {
+    color: #495057;
+    transition: color 0.2s;
+}
+.list-group-item h6 a:hover {
+    color: #0d6efd;
+}
+.badge.bg-primary {
+    font-size: 0.75em;
+}
+</style>
+{% endblock %}

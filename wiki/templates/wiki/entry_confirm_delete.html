@@ -1,0 +1,146 @@
+{% extends 'wiki/base.html' %}
+
+{% block title %}删除词条 - 百科系统{% endblock %}
+
+{% block page_title %}确认删除词条{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle"></i> 删除确认
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- 警告信息 -->
+                <div class="alert alert-warning">
+                    <h6><i class="fas fa-warning"></i> 警告：此操作不可撤销！</h6>
+                    <p class="mb-0">
+                        您即将删除词条 <strong>"{{ entry.title }}"</strong>。
+                        此操作将永久删除该词条及其所有相关内容。
+                    </p>
+                </div>
+                
+                <!-- 词条信息 -->
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h6>词条信息</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="text-muted">
+                                    <strong>标题:</strong> {{ entry.title }}
+                                </small>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted">
+                                    <strong>分类:</strong> 
+                                    {% if entry.category %}{{ entry.category.name }}{% else %}未分类{% endif %}
+                                </small>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <small class="text-muted">
+                                    <strong>创建时间:</strong> {{ entry.created_at|date:"Y-m-d H:i" }}
+                                </small>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted">
+                                    <strong>字数:</strong> {{ entry.content|wordcount }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 确认表单 -->
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <!-- 安全确认 -->
+                    <div class="mb-3">
+                        <label for="confirmText" class="form-label">
+                            请输入词条标题 <strong>"{{ entry.title }}"</strong> 以确认删除：
+                        </label>
+                        <input type="text" class="form-control" id="confirmText" 
+                               placeholder="请输入词条标题" required>
+                    </div>
+                    
+                    <!-- 操作按钮 -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'wiki:entry_detail' entry.id %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> 返回词条详情
+                        </a>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-outline-danger" id="deleteBtn" disabled>
+                                <i class="fas fa-trash"></i> 确认删除
+                            </button>
+                            <button type="submit" class="btn btn-danger d-none" id="submitBtn">
+                                <i class="fas fa-trash"></i> 确认删除
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 删除后果提示 -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <h6><i class="fas fa-info-circle"></i> 删除后果</h6>
+                <ul class="mb-0">
+                    <li>词条将被永久删除，无法恢复</li>
+                    <li>所有相关的浏览记录和统计数据将丢失</li>
+                    <li>如果该词条被其他词条引用，链接将失效</li>
+                    <li>建议先备份重要内容再执行删除操作</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 确认文本验证
+const confirmInput = document.getElementById('confirmText');
+const deleteBtn = document.getElementById('deleteBtn');
+const submitBtn = document.getElementById('submitBtn');
+const entryTitle = "{{ entry.title }}";
+
+confirmInput.addEventListener('input', function() {
+    if (confirmInput.value === entryTitle) {
+        deleteBtn.disabled = false;
+    } else {
+        deleteBtn.disabled = true;
+    }
+});
+
+// 删除按钮点击处理
+deleteBtn.addEventListener('click', function() {
+    // 显示最终确认对话框
+    if (confirm('您确定要永久删除词条 "' + entryTitle + '" 吗？此操作无法撤销！')) {
+        // 隐藏预览按钮，显示实际提交按钮
+        deleteBtn.classList.add('d-none');
+        submitBtn.classList.remove('d-none');
+        
+        // 自动提交表单
+        setTimeout(function() {
+            submitBtn.click();
+        }, 100);
+    }
+});
+
+// 防止表单意外提交
+confirmInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        if (!deleteBtn.disabled) {
+            deleteBtn.click();
+        }
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,226 @@
+{% extends 'wiki/base.html' %}
+
+{% block title %}分类管理 - 百科系统{% endblock %}
+
+{% block page_title %}
+<div class="d-flex justify-content-between align-items-center">
+    <span>分类管理</span>
+    <a href="{% url 'wiki:category_create' %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-plus"></i> 新建分类
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- 统计信息 -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-folder fa-2x"></i>
+                            </div>
+                            <div>
+                                <h4 class="mb-0">{{ categories.count }}</h4>
+                                <small>总分类数</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-file-alt fa-2x"></i>
+                            </div>
+                            <div>
+                                <h4 class="mb-0">{{ total_entries }}</h4>
+                                <small>总词条数</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-chart-bar fa-2x"></i>
+                            </div>
+                            <div>
+                                <h4 class="mb-0">{{ avg_entries_per_category|floatformat:1 }}</h4>
+                                <small>平均词条数/分类</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <i class="fas fa-clock fa-2x"></i>
+                            </div>
+                            <div>
+                                <h4 class="mb-0">{{ latest_category.created_at|date:"m-d" }}</h4>
+                                <small>最新分类</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 分类列表 -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-list"></i> 分类列表
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                {% if categories %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="30%">分类名称</th>
+                                <th width="15%">词条数量</th>
+                                <th width="20%">创建时间</th>
+                                <th width="20%">最后更新</th>
+                                <th width="15%">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for category in categories %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge bg-primary me-2">
+                                            <i class="fas fa-folder"></i>
+                                        </span>
+                                        <a href="{% url 'wiki:category_entries' category.id %}" 
+                                           class="text-decoration-none">
+                                            <strong>{{ category.name }}</strong>
+                                        </a>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">
+                                        {{ category.entry_set.count }} 个词条
+                                    </span>
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        {{ category.created_at|date:"Y-m-d H:i" }}
+                                    </small>
+                                </td>
+                                <td>
+                                    <small class="text-muted">
+                                        {% if category.entry_set.last %}
+                                            {{ category.entry_set.last.updated_at|date:"Y-m-d H:i" }}
+                                        {% else %}
+                                            暂无更新
+                                        {% endif %}
+                                    </small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'wiki:category_entries' category.id %}" 
+                                           class="btn btn-outline-primary" 
+                                           title="查看词条">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'wiki:entry_create' %}?category={{ category.id }}" 
+                                           class="btn btn-outline-success" 
+                                           title="添加词条">
+                                            <i class="fas fa-plus"></i>
+                                        </a>
+                                        <a href="#" 
+                                           class="btn btn-outline-warning" 
+                                           title="编辑分类"
+                                           onclick="alert('编辑功能待实现')">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">暂无分类</h5>
+                    <p class="text-muted">创建第一个分类来组织您的词条</p>
+                    <a href="{% url 'wiki:category_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> 创建分类
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- 分类分布图表区域 -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-pie"></i> 分类词条分布
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for category in categories %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0">
+                                <span class="badge bg-primary rounded-pill p-2">
+                                    <i class="fas fa-folder"></i>
+                                </span>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <div class="d-flex justify-content-between">
+                                    <span class="fw-bold">{{ category.name }}</span>
+                                    <span class="text-muted">{{ category.entry_set.count }}</span>
+                                </div>
+                                <div class="progress mt-1" style="height: 6px;">
+                                    <div class="progress-bar bg-primary" 
+                                         style="width: {% widthratio category.entry_set.count total_entries 100 %}%">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12 text-center py-3">
+                        <p class="text-muted mb-0">暂无分类数据</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.progress {
+    background-color: #f8f9fa;
+}
+.table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+.badge.bg-primary {
+    font-size: 0.75em;
+}
+</style>
+{% endblock %}

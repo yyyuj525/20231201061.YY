@@ -1,0 +1,175 @@
+{% extends 'wiki/base.html' %}
+
+{% block title %}词条列表 - 百科系统{% endblock %}
+
+{% block page_title %}百科词条列表{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 侧边栏 - 分类筛选 -->
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-filter"></i> 分类筛选
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="{% url 'wiki:entry_list' %}" 
+                       class="list-group-item list-group-item-action {% if not selected_category %}active{% endif %}">
+                        全部词条
+                    </a>
+                    {% for category in categories %}
+                    <a href="{% url 'wiki:entry_list' %}?category={{ category.id }}" 
+                       class="list-group-item list-group-item-action {% if selected_category == category.id|stringformat:'s' %}active{% endif %}">
+                        {{ category.name }}
+                        <span class="badge bg-primary rounded-pill float-end">
+                            {{ category.entry_set.count }}
+                        </span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- 创建词条按钮 -->
+        <div class="mt-3">
+            <a href="{% url 'wiki:entry_create' %}" class="btn btn-success w-100">
+                <i class="fas fa-plus"></i> 创建新词条
+            </a>
+        </div>
+    </div>
+    
+    <!-- 主内容区域 -->
+    <div class="col-md-9">
+        <!-- 搜索和统计信息 -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h4 class="mb-0">
+                    {% if selected_category %}
+                        {{ categories|get_category:selected_category }} 分类下的词条
+                    {% elif search_query %}
+                        搜索 "{{ search_query }}" 的结果
+                    {% else %}
+                        所有词条
+                    {% endif %}
+                </h4>
+                <small class="text-muted">共 {{ entries.count }} 个词条</small>
+            </div>
+            
+            <!-- 排序选项 -->
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-sort"></i> 排序
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="?sort=newest">最新创建</a></li>
+                    <li><a class="dropdown-item" href="?sort=oldest">最早创建</a></li>
+                    <li><a class="dropdown-item" href="?sort=title">按标题</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- 词条列表 -->
+        {% if entries %}
+            <div class="row">
+                {% for entry in entries %}
+                <div class="col-lg-6 mb-4">
+                    <div class="card entry-card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <a href="{% url 'wiki:entry_detail' entry.id %}" class="text-decoration-none">
+                                    {{ entry.title }}
+                                </a>
+                            </h5>
+                            
+                            {% if entry.category %}
+                            <span class="badge bg-primary mb-2">{{ entry.category.name }}</span>
+                            {% endif %}
+                            
+                            <p class="card-text text-muted">
+                                {{ entry.content|truncatewords:30 }}
+                            </p>
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar"></i> 
+                                    {{ entry.created_at|date:"Y-m-d H:i" }}
+                                </small>
+                                <div>
+                                    <a href="{% url 'wiki:entry_edit' entry.id %}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'wiki:entry_delete' entry.id %}" 
+                                       class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <!-- 空状态 -->
+            <div class="text-center py-5">
+                <i class="fas fa-book fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">暂无词条</h4>
+                <p class="text-muted">
+                    {% if search_query %}
+                        没有找到包含 "{{ search_query }}" 的词条
+                    {% else %}
+                        还没有创建任何词条，点击上方按钮创建第一个词条吧！
+                    {% endif %}
+                </p>
+                <a href="{% url 'wiki:entry_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> 创建词条
+                </a>
+            </div>
+        {% endif %}
+        
+        <!-- 分页 -->
+        {% if entries.has_other_pages %}
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                {% if entries.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ entries.previous_page_number }}">上一页</a>
+                </li>
+                {% endif %}
+                
+                {% for i in entries.paginator.page_range %}
+                <li class="page-item {% if entries.number == i %}active{% endif %}">
+                    <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                </li>
+                {% endfor %}
+                
+                {% if entries.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ entries.next_page_number }}">下一页</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 自定义模板过滤器（需要在Django中注册）
+// 这里使用JavaScript实现简单的分类查找功能
+function getCategory(categories, categoryId) {
+    for (let i = 0; i < categories.length; i++) {
+        if (categories[i].id == categoryId) {
+            return categories[i].name;
+        }
+    }
+    return '';
+}
+</script>
+{% endblock %}

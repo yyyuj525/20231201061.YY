@@ -1,0 +1,177 @@
+{% extends 'wiki/base.html' %}
+
+{% block title %}{{ title }} - 百科系统{% endblock %}
+
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-edit"></i> {{ title }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- 表单错误提示 -->
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <h6><i class="fas fa-exclamation-triangle"></i> 表单填写有误</h6>
+                        <ul class="mb-0">
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <li>{{ field.label }}: {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- 词条标题 -->
+                    <div class="mb-3">
+                        <label for="{{ form.title.id_for_label }}" class="form-label">
+                            <i class="fas fa-heading"></i> 词条标题 *
+                        </label>
+                        {{ form.title }}
+                        <div class="form-text">请输入清晰、简洁的词条标题，长度不超过200个字符</div>
+                    </div>
+                    
+                    <!-- 分类选择 -->
+                    <div class="mb-3">
+                        <label for="{{ form.category.id_for_label }}" class="form-label">
+                            <i class="fas fa-folder"></i> 分类
+                        </label>
+                        {{ form.category }}
+                        <div class="form-text">选择词条所属分类（可选）</div>
+                    </div>
+                    
+                    <!-- 词条内容 -->
+                    <div class="mb-3">
+                        <label for="{{ form.content.id_for_label }}" class="form-label">
+                            <i class="fas fa-file-text"></i> 词条内容 *
+                        </label>
+                        {{ form.content }}
+                        <div class="form-text">
+                            请输入详细的词条内容，支持多行文本。当前字数: 
+                            <span id="charCount">0</span>
+                        </div>
+                    </div>
+                    
+                    <!-- 发布状态 -->
+                    <div class="mb-4">
+                        <div class="form-check form-switch">
+                            {{ form.is_published }}
+                            <label class="form-check-label" for="{{ form.is_published.id_for_label }}">
+                                <i class="fas fa-eye"></i> 立即发布
+                            </label>
+                        </div>
+                        <div class="form-text">
+                            如果取消勾选，词条将保存为草稿状态，不会在列表中显示
+                        </div>
+                    </div>
+                    
+                    <!-- 操作按钮 -->
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <a href="{% if form.instance.pk %}{% url 'wiki:entry_detail' form.instance.pk %}{% else %}{% url 'wiki:entry_list' %}{% endif %}" 
+                               class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> 取消
+                            </a>
+                        </div>
+                        <div class="btn-group">
+                            <button type="submit" name="action" value="save" class="btn btn-primary">
+                                <i class="fas fa-save"></i> 保存
+                            </button>
+                            <button type="submit" name="action" value="save_and_continue" class="btn btn-outline-primary">
+                                <i class="fas fa-redo"></i> 保存并继续编辑
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 编辑提示 -->
+        {% if form.instance.pk %}
+        <div class="card mt-4">
+            <div class="card-body">
+                <h6><i class="fas fa-info-circle"></i> 编辑信息</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <small class="text-muted">
+                            <strong>创建时间:</strong> {{ form.instance.created_at|date:"Y-m-d H:i" }}
+                        </small>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted">
+                            <strong>最后更新:</strong> {{ form.instance.updated_at|date:"Y-m-d H:i" }}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 实时字数统计
+const contentTextarea = document.getElementById('{{ form.content.id_for_label }}');
+const charCountSpan = document.getElementById('charCount');
+
+function updateCharCount() {
+    const text = contentTextarea.value;
+    charCountSpan.textContent = text.length;
+}
+
+contentTextarea.addEventListener('input', updateCharCount);
+
+// 初始化字数统计
+updateCharCount();
+
+// 表单提交处理
+document.querySelector('form').addEventListener('submit', function(e) {
+    // 基本验证
+    const title = document.getElementById('{{ form.title.id_for_label }}').value.trim();
+    const content = document.getElementById('{{ form.content.id_for_label }}').value.trim();
+    
+    if (!title) {
+        e.preventDefault();
+        alert('请输入词条标题');
+        return;
+    }
+    
+    if (!content) {
+        e.preventDefault();
+        alert('请输入词条内容');
+        return;
+    }
+    
+    // 显示加载状态
+    const submitButtons = document.querySelectorAll('button[type="submit"]');
+    submitButtons.forEach(button => {
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 保存中...';
+    });
+});
+
+// 自动保存草稿功能（简化版）
+let autoSaveTimer;
+contentTextarea.addEventListener('input', function() {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(function() {
+        // 这里可以实现自动保存草稿功能
+        console.log('内容已更改，可以添加自动保存功能');
+    }, 3000); // 3秒后自动保存
+});
+</script>
+{% endblock %}
